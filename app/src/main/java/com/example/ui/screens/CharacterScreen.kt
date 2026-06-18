@@ -99,22 +99,42 @@ fun CharacterScreen(
                         style = Typography.bodyLarge,
                         fontStyle = FontStyle.Italic
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "LvL. 12",
+                            color = GothicGold,
+                            style = Typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Box(modifier = Modifier.width(120.dp).height(6.dp).background(GothicDarkSurface, RoundedCornerShape(3.dp))) {
+                            Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.65f).background(GothicGold, RoundedCornerShape(3.dp)))
+                        }
+                    }
                 }
 
                 // Switch avatar button
-                Button(
-                    onClick = { classType = if (classType == "KNIGHT") "ALCHEMIST" else "KNIGHT" },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = GothicLightSurface,
-                        contentColor = GothicTextGold
-                    ),
-                    modifier = Modifier
-                        .gothicBorder(GothicGold, 1.dp)
-                        .testTag("switch_class_button")
-                ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Avatar", style = Typography.labelLarge)
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = { classType = if (classType == "KNIGHT") "ALCHEMIST" else "KNIGHT" },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = GothicLightSurface,
+                            contentColor = GothicTextGold
+                        ),
+                        modifier = Modifier
+                            .gothicBorder(GothicGold, 1.dp)
+                            .testTag("switch_class_button"),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Avatar", style = Typography.labelLarge)
+                    }
+                    // Character basic HP/Mana UI detail
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(modifier = Modifier.width(40.dp).height(4.dp).background(GothicBloodRed))
+                        Box(modifier = Modifier.width(40.dp).height(4.dp).background(Color(0xFF3B82F6)))
+                    }
                 }
             }
         }
@@ -168,7 +188,7 @@ fun CharacterScreen(
                         PixelArtCharacter(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(180.dp),
+                                .height(240.dp),
                             modelName = classType
                         )
 

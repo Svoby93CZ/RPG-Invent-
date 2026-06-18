@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -65,21 +66,47 @@ fun MainAppContainer(
                     modifier = Modifier.testTag("nav_tab_character")
                 )
 
-                // Tab 2: Forge (Tvorba / Kovárna)
+                // Tab 2: Backpack (Batoh / Inventář)
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     icon = {
                         Icon(
-                            imageVector = Icons.Default.Build,
-                            contentDescription = "Kovárna",
+                            imageVector = Icons.Default.ShoppingCart,
+                            contentDescription = "Batoh",
                             tint = if (selectedTab == 1) GothicGold else GothicTextMuted
                         )
                     },
                     label = {
                         Text(
-                            text = "Kovárna",
+                            text = "Batoh",
                             color = if (selectedTab == 1) GothicTextGold else GothicTextMuted,
+                            style = Typography.labelLarge
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = GothicLightSurface,
+                        selectedIconColor = GothicGold,
+                        unselectedIconColor = GothicTextMuted
+                    ),
+                    modifier = Modifier.testTag("nav_tab_backpack")
+                )
+
+                // Tab 3: Forge (Tvorba / Kovárna)
+                NavigationBarItem(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Build,
+                            contentDescription = "Kovárna",
+                            tint = if (selectedTab == 2) GothicGold else GothicTextMuted
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = "Kovárna",
+                            color = if (selectedTab == 2) GothicTextGold else GothicTextMuted,
                             style = Typography.labelLarge
                         )
                     },
@@ -91,21 +118,21 @@ fun MainAppContainer(
                     modifier = Modifier.testTag("nav_tab_create")
                 )
 
-                // Tab 3: Places (Místa / Archiv)
+                // Tab 4: Places (Místa / Archiv)
                 NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
                     icon = {
                         Icon(
                             imageVector = Icons.Default.Home,
                             contentDescription = "Místa",
-                            tint = if (selectedTab == 2) GothicGold else GothicTextMuted
+                            tint = if (selectedTab == 3) GothicGold else GothicTextMuted
                         )
                     },
                     label = {
                         Text(
                             text = "Místa",
-                            color = if (selectedTab == 2) GothicTextGold else GothicTextMuted,
+                            color = if (selectedTab == 3) GothicTextGold else GothicTextMuted,
                             style = Typography.labelLarge
                         )
                     },
@@ -127,8 +154,9 @@ fun MainAppContainer(
         ) {
             when (selectedTab) {
                 0 -> CharacterScreen(viewModel = viewModel)
-                1 -> ItemCreationScreen(viewModel = viewModel)
-                2 -> LocationsScreen(viewModel = viewModel)
+                1 -> BackpackScreen(viewModel = viewModel)
+                2 -> ItemCreationScreen(viewModel = viewModel)
+                3 -> LocationsScreen(viewModel = viewModel)
             }
         }
     }
