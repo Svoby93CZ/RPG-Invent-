@@ -9,7 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@Database(entities = [GameCharacter::class, Location::class, Item::class], version = 1, exportSchema = false)
+@Database(entities = [GameCharacter::class, Location::class, Item::class, EquipmentSet::class, Skill::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun appDao(): AppDao
@@ -26,6 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "rpg_character_organizer_db"
                 )
                 .addCallback(AppDatabaseCallback(scope))
+                .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance
                 instance

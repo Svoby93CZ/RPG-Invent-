@@ -65,4 +65,24 @@ interface AppDao {
 
     @Delete
     suspend fun deleteItem(item: Item)
+
+    // --- Equipment Set Queries ---
+    @Query("SELECT * FROM equipment_sets")
+    fun getAllEquipmentSets(): Flow<List<EquipmentSet>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEquipmentSet(equipmentSet: EquipmentSet): Long
+
+    @Delete
+    suspend fun deleteEquipmentSet(equipmentSet: EquipmentSet)
+
+    // --- Skill Queries ---
+    @Query("SELECT * FROM skills")
+    fun getAllSkills(): Flow<List<Skill>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSkill(skill: Skill): Long
+
+    @Delete
+    suspend fun deleteSkill(skill: Skill)
 }

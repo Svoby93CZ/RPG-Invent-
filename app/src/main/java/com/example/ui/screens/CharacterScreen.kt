@@ -40,6 +40,8 @@ import com.example.ui.theme.*
 import com.example.ui.viewmodel.RPGViewModel
 import com.example.utils.Pixelizer
 
+import androidx.compose.material.icons.filled.List
+
 @Composable
 fun CharacterScreen(
     viewModel: RPGViewModel,
@@ -49,10 +51,15 @@ fun CharacterScreen(
     val locations by viewModel.locations.collectAsState()
     val equippedItems by viewModel.equippedItems.collectAsState()
     val backpackItems by viewModel.backpackItems.collectAsState()
+    val equipmentSets by viewModel.equipmentSets.collectAsState()
+    val skills by viewModel.skills.collectAsState()
+    
     val activeCap by viewModel.activeInventoryCapacity.collectAsState()
     val activeWeight by viewModel.activeInventoryWeight.collectAsState()
 
     var showEditNameDialog by remember { mutableStateOf(false) }
+    var showSetsDialog by remember { mutableStateOf(false) }
+    var showAddSkillDialog by remember { mutableStateOf(false) }
     var selectedItemForDetail by remember { mutableStateOf<Item?>(null) }
     var selectSlotToEquip by remember { mutableStateOf<Pair<String, Int>?>(null) } // slotType, slotIndex
     var classType by remember { mutableStateOf("KNIGHT") } // KNIGHT or ALCHEMIST
@@ -99,36 +106,37 @@ fun CharacterScreen(
                         style = Typography.bodyLarge,
                         fontStyle = FontStyle.Italic
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "LvL. 12",
-                            color = GothicGold,
-                            style = Typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Box(modifier = Modifier.width(120.dp).height(6.dp).background(GothicDarkSurface, RoundedCornerShape(3.dp))) {
-                            Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(0.65f).background(GothicGold, RoundedCornerShape(3.dp)))
-                        }
-                    }
                 }
 
                 // Switch avatar button
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = { classType = if (classType == "KNIGHT") "ALCHEMIST" else "KNIGHT" },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = GothicLightSurface,
-                            contentColor = GothicTextGold
-                        ),
-                        modifier = Modifier
-                            .gothicBorder(GothicGold, 1.dp)
-                            .testTag("switch_class_button"),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Avatar", style = Typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Button(
+                            onClick = { showSetsDialog = true },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = GothicLightSurface,
+                                contentColor = GothicTextGold
+                            ),
+                            modifier = Modifier.gothicBorder(GothicGold, 1.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(16.dp))
+                        }
+                        Button(
+                            onClick = { classType = if (classType == "KNIGHT") "ALCHEMIST" else "KNIGHT" },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = GothicLightSurface,
+                                contentColor = GothicTextGold
+                            ),
+                            modifier = Modifier
+                                .gothicBorder(GothicGold, 1.dp)
+                                .testTag("switch_class_button"),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Avatar", style = Typography.labelLarge)
+                        }
                     }
                     // Character basic HP/Mana UI detail
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -298,7 +306,66 @@ fun CharacterScreen(
             }
         }
 
-        // 3. Backpack (Inventory) Header with capacity Meter
+        // 3. Skills (Zkušenosti) List
+        item {
+            GothicPanel(title = "ZKUŠENOSTI A DOVEDNOSTI") {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (skills.isEmpty()) {
+                        Text(
+                            text = "Zatím nemáš žádné zkušenosti.",
+                            color = GothicTextMuted,
+                            style = Typography.bodyMedium,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
+                        )
+                    } else {
+                        skills.forEach { skill ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(GothicLightSurface, GothicCardShape)
+                                    .gothicBorder(GothicBorderGray, 1.dp)
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = skill.name,
+                                    color = GothicTextSilver,
+                                    style = Typography.bodyLarge
+                                )
+                                IconButton(
+                                    onClick = { viewModel.deleteSkill(skill) },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Smazat",
+                                        tint = GothicBloodRed,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = { showAddSkillDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = GothicDarkSurface, contentColor = GothicTextGold),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                            .gothicBorder(GothicGold, 1.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Přidat zkušenost")
+                    }
+                }
+            }
+        }
+
+        // 4. Backpack (Inventory) Header with capacity Meter
         item {
             GothicPanel(borderColor = GothicBloodRed) {
                 RPGProgressBar(
@@ -396,6 +463,49 @@ fun CharacterScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showEditNameDialog = false }) {
+                    Text("Zrušit", color = GothicTextMuted)
+                }
+            },
+            containerColor = GothicDarkSurface,
+            shape = GothicCardShape
+        )
+    }
+
+    // --- ADD SKILL DIALOG ---
+    if (showAddSkillDialog) {
+        var skillNameInput by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showAddSkillDialog = false },
+            title = { Text("Nová zkušenost", style = Typography.titleLarge, color = GothicTextGold) },
+            text = {
+                OutlinedTextField(
+                    value = skillNameInput,
+                    onValueChange = { skillNameInput = it },
+                    label = { Text("Např. Řidičák, Vyjednávání...", color = GothicTextMuted) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = GothicTextSilver,
+                        unfocusedTextColor = GothicTextSilver,
+                        focusedBorderColor = GothicGold,
+                        unfocusedBorderColor = GothicBorderGray
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (skillNameInput.isNotBlank()) {
+                            viewModel.insertSkill(skillNameInput.trim())
+                        }
+                        showAddSkillDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = GothicGold, contentColor = GothicDarkBackground)
+                ) {
+                    Text("Přidat", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddSkillDialog = false }) {
                     Text("Zrušit", color = GothicTextMuted)
                 }
             },
@@ -661,6 +771,103 @@ fun CharacterScreen(
             dismissButton = {
                 TextButton(onClick = { selectedItemForDetail = null }) {
                     Text("Zavřít", color = GothicTextWithMuted)
+                }
+            },
+            containerColor = GothicDarkSurface,
+            shape = GothicCardShape
+        )
+    }
+
+    // --- SETS MANAGEMENT DIALOG ---
+    if (showSetsDialog) {
+        var newSetNameInput by remember { mutableStateOf("") }
+        
+        AlertDialog(
+            onDismissRequest = { showSetsDialog = false },
+            title = { Text("Správa výzbroje (Sety)", style = Typography.titleLarge, color = GothicTextGold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Save new set
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = newSetNameInput,
+                            onValueChange = { newSetNameInput = it },
+                            label = { Text("Název nového setu", color = GothicTextMuted) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = GothicTextSilver,
+                                unfocusedTextColor = GothicTextSilver,
+                                focusedBorderColor = GothicGold,
+                                unfocusedBorderColor = GothicBorderGray
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Button(
+                            onClick = {
+                                if (newSetNameInput.isNotBlank()) {
+                                    viewModel.saveCurrentEquipmentAsSet(newSetNameInput.trim())
+                                    newSetNameInput = ""
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = GothicGold, contentColor = GothicDarkBackground)
+                        ) {
+                            Text("Uložit", fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    HorizontalDivider(color = GothicBorderGray)
+
+                    // List existing sets
+                    if (equipmentSets.isEmpty()) {
+                        Text("Nemáš uložené žádné sety.", color = GothicTextMuted, style = Typography.bodyMedium)
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.heightIn(max = 250.dp)
+                        ) {
+                            items(equipmentSets) { setDef ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().gothicBorder(GothicGold, 1.dp),
+                                    colors = CardDefaults.cardColors(containerColor = GothicLightSurface)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(setDef.name, style = Typography.titleMedium, color = GothicTextGold, fontWeight = FontWeight.Bold)
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Button(
+                                                onClick = {
+                                                    viewModel.loadEquipmentSet(setDef)
+                                                    showSetsDialog = false
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = GothicDarkSurface, contentColor = GothicTextGold),
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                                modifier = Modifier.height(32.dp).gothicBorder(GothicGold, 1.dp)
+                                            ) {
+                                                Text("Obléct", fontSize = 12.sp)
+                                            }
+                                            IconButton(
+                                                onClick = { viewModel.deleteEquipmentSet(setDef) },
+                                                modifier = Modifier.size(32.dp)
+                                            ) {
+                                                Icon(Icons.Default.Delete, contentDescription = "Smazat set", tint = GothicBloodRed)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSetsDialog = false }) {
+                    Text("Zavřít", color = GothicTextMuted)
                 }
             },
             containerColor = GothicDarkSurface,

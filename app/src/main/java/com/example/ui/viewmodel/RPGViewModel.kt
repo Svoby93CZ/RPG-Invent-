@@ -19,6 +19,9 @@ class RPGViewModel(application: Application) : AndroidViewModel(application) {
     val backpackItems: StateFlow<List<Item>>
     val allItems: StateFlow<List<Item>>
 
+    val equipmentSets: StateFlow<List<EquipmentSet>>
+    val skills: StateFlow<List<Skill>>
+
     // Computed Streams
     val activeInventoryCapacity: StateFlow<Int>
     val activeInventoryWeight: StateFlow<Double>
@@ -40,6 +43,12 @@ class RPGViewModel(application: Application) : AndroidViewModel(application) {
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         allItems = repository.allItems
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+        equipmentSets = repository.equipmentSets
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+        skills = repository.skills
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
         // Calculate active carrying capacity of character based on pocket size of equipped items
@@ -145,6 +154,41 @@ class RPGViewModel(application: Application) : AndroidViewModel(application) {
     fun moveItemToLocation(item: Item, locationId: Long?) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.moveItemToLocation(item, locationId)
+        }
+    }
+
+    // --- EQUIPMENT SET OPERATIONS ---
+    fun deleteEquipmentSet(set: EquipmentSet) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteEquipmentSet(set)
+        }
+    }
+
+    fun loadEquipmentSet(set: EquipmentSet) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.loadEquipmentSet(set)
+        }
+    }
+
+    fun saveCurrentEquipmentAsSet(name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val equipped = equippedItems.value
+            val itemIds = equipped.joinToString(",") { it.id.toString() }
+            val set = EquipmentSet(name = name, itemIds = itemIds)
+            repository.insertEquipmentSet(set)
+        }
+    }
+
+    // --- SKILL OPERATIONS ---
+    fun insertSkill(name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertSkill(Skill(name = name))
+        }
+    }
+
+    fun deleteSkill(skill: Skill) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteSkill(skill)
         }
     }
 }

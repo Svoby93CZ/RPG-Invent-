@@ -69,4 +69,31 @@ class ItemRepository(private val appDao: AppDao) {
             locationId = locationId
         ))
     }
+
+    val equipmentSets: Flow<List<EquipmentSet>> = appDao.getAllEquipmentSets()
+    val skills: Flow<List<Skill>> = appDao.getAllSkills()
+
+    suspend fun insertSkill(skill: Skill): Long = appDao.insertSkill(skill)
+    suspend fun deleteSkill(skill: Skill) = appDao.deleteSkill(skill)
+
+    suspend fun insertEquipmentSet(equipmentSet: EquipmentSet): Long = appDao.insertEquipmentSet(equipmentSet)
+    
+    suspend fun deleteEquipmentSet(equipmentSet: EquipmentSet) = appDao.deleteEquipmentSet(equipmentSet)
+
+    suspend fun loadEquipmentSet(equipmentSet: EquipmentSet) {
+        val itemIds = equipmentSet.itemIds.split(",").mapNotNull { it.toLongOrNull() }
+        
+        // Unequip current items
+        val currentEquipped = appDao.getEquippedItems().firstOrNull() ?: emptyList()
+        currentEquipped.forEach {
+            appDao.updateItem(it.copy(equippedSlotIndex = null, locationId = null))
+        }
+
+        // Equip saved items to index 0 of their respective slotType
+        itemIds.forEach { itemId ->
+            appDao.getItemById(itemId)?.let { item ->
+                appDao.updateItem(item.copy(locationId = null, equippedSlotIndex = 0))
+            }
+        }
+    }
 }
