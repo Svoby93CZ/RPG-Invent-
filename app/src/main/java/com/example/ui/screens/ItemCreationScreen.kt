@@ -38,6 +38,7 @@ import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.RPGViewModel
 import com.example.utils.Pixelizer
+import com.example.utils.toWeightOrNull
 import java.io.InputStream
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -47,6 +48,10 @@ fun ItemCreationScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+
+    val backpackItems by viewModel.backpackItems.collectAsState()
+    val activeCapacity by viewModel.activeInventoryCapacity.collectAsState()
+    val freeSlots = (activeCapacity - backpackItems.size).coerceAtLeast(0)
 
     // Form inputs
     var name by remember { mutableStateOf("") }
@@ -66,17 +71,20 @@ fun ItemCreationScreen(
     var selectedPixelArtBase64 by remember { mutableStateOf<String?>(null) }
     var showSuccessfullyCreatedMessage by remember { mutableStateOf(false) }
 
-    // Predefined icons templates (custom-built retro grids)
-    val templates = listOf(
-        TemplateIcon("👑 Koruna", "HLAVA", drawCrownData()),
-        TemplateIcon("🧣 Šála", "KRK", drawNecklaceData()),
-        TemplateIcon("🛡️ Zbroj", "HRUDNIK", drawArmorData()),
-        TemplateIcon("🎒 Batoh", "BATOH", drawBagData()),
-        TemplateIcon("💍 Prsten", "PRST", drawRingData()),
-        TemplateIcon("🧪 Elixír", "OBECNY", drawElixirData()),
-        TemplateIcon("🥾 Bota", "CHODIDLA", drawBootsData()),
-        TemplateIcon("🗡️ Meč", "OBECNY", drawSwordData()),
-    )
+    // Predefined icon templates (custom-built retro grids). Each one rasterises a 16x16 matrix
+    // and base64-encodes it, so they are built once instead of on every recomposition.
+    val templates = remember {
+        listOf(
+            TemplateIcon("👑 Koruna", "HLAVA", drawCrownData()),
+            TemplateIcon("🧣 Šála", "KRK", drawNecklaceData()),
+            TemplateIcon("🛡️ Zbroj", "HRUDNIK", drawArmorData()),
+            TemplateIcon("🎒 Batoh", "BATOH", drawBagData()),
+            TemplateIcon("💍 Prsten", "PRST", drawRingData()),
+            TemplateIcon("🧪 Elixír", "OBECNY", drawElixirData()),
+            TemplateIcon("🥾 Bota", "CHODIDLA", drawBootsData()),
+            TemplateIcon("🗡️ Meč", "OBECNY", drawSwordData())
+        )
+    }
 
     // Gallery selector launcher to pixelate device images
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -119,6 +127,12 @@ fun ItemCreationScreen(
                 color = GothicTextMuted,
                 style = Typography.bodyLarge
             )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Volné místo v batohu: $freeSlots z $activeCapacity",
+                color = if (freeSlots > 0) GothicTextGold else GothicBloodRed,
+                style = Typography.bodyMedium
+            )
         }
 
         // Core Form Inputs
@@ -146,7 +160,7 @@ fun ItemCreationScreen(
                 // Rarity Dropdown selector (Gothic styled Grid of Buttons instead of annoying traditional Dropdowns)
                 Text("Vzácnost předmětu:", color = GothicTextGold, style = Typography.labelLarge)
                 Spacer(modifier = Modifier.height(4.dp))
-                com.example.ui.screens.FlowRow(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -176,7 +190,7 @@ fun ItemCreationScreen(
                 // Slot Dropdown Selector (Grid selection buttons)
                 Text("Cílový slot těla:", color = GothicTextGold, style = Typography.labelLarge)
                 Spacer(modifier = Modifier.height(4.dp))
-                com.example.ui.screens.FlowRow(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -234,7 +248,7 @@ fun ItemCreationScreen(
 
                 // Predefined list of convenient Czech stats buttons to help the user input them instantly!
                 Text("Přidat statistiky:", color = GothicTextGold, style = Typography.labelLarge)
-                com.example.ui.screens.FlowRow(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -477,7 +491,7 @@ fun ItemCreationScreen(
                 // Presets templates grid
                 Text("Použít rychlou předlohu / šablonu ikon:", color = GothicTextGold, style = Typography.labelLarge)
                 Spacer(modifier = Modifier.height(4.dp))
-                com.example.ui.screens.FlowRow(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -508,7 +522,7 @@ fun ItemCreationScreen(
             Button(
                 onClick = {
                     if (name.isNotBlank()) {
-                        val weight = weightInput.toDoubleOrNull() ?: 0.5
+                        val weight = weightInput.toWeightOrNull() ?: 0.5
                         val charges = if (isConsumable) (chargesInput.toIntOrNull() ?: 3) else 0
                         val pockets = if (hasPockets) (pocketSizeInput.toIntOrNull() ?: 4) else 0
 

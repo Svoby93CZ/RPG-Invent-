@@ -2,7 +2,6 @@ package com.example.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,11 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -32,8 +27,8 @@ import com.example.data.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.RPGViewModel
-import com.example.utils.Pixelizer
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LocationsScreen(
     viewModel: RPGViewModel,
@@ -46,6 +41,7 @@ fun LocationsScreen(
 
     var showCreateLocationDialog by remember { mutableStateOf(false) }
     var locationToEdit by remember { mutableStateOf<Location?>(null) }
+    var locationToDelete by remember { mutableStateOf<Location?>(null) }
     
     var expandedLocationId by remember { mutableStateOf<Long?>(null) }
     var selectedItemForDetail by remember { mutableStateOf<Item?>(null) }
@@ -168,7 +164,8 @@ fun LocationsScreen(
                                 Icon(Icons.Default.Edit, contentDescription = "Upravit místo", tint = GothicGold, modifier = Modifier.size(18.dp))
                             }
                             IconButton(
-                                onClick = { viewModel.deleteLocation(location) },
+                                // Deleting a location destroys everything stored in it, so ask first.
+                                onClick = { locationToDelete = location },
                                 modifier = Modifier.size(36.dp).testTag("delete_location_${location.id}")
                             ) {
                                 Icon(Icons.Default.Delete, contentDescription = "Smazat místo", tint = GothicBloodRed, modifier = Modifier.size(18.dp))
@@ -216,7 +213,7 @@ fun LocationsScreen(
                                     )
                                 }
                             } else {
-                                com.example.ui.screens.FlowRow(
+                                FlowRow(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -365,91 +362,37 @@ fun LocationsScreen(
         )
     }
 
-    // --- ITEM STASH DETAILS DIALOG (RETRIEVING ACTION) ---
+    // --- ITEM STASH TOOLTIP (RETRIEVING ACTION) ---
     selectedItemForDetail?.let { item ->
-        AlertDialog(
-            onDismissRequest = { selectedItemForDetail = null },
-            title = {
-                Column {
-                    Text(
-                        text = item.name,
-                        style = Typography.titleLarge,
-                        color = getRarityColor(item.rarity)
-                    )
-                    Text(
-                        text = "Vzácnost: ${getRarityCzechName(item.rarity)}",
-                        color = getRarityColor(item.rarity).copy(alpha = 0.8f),
-                        style = Typography.bodyMedium
-                    )
+        val location = locations.find { it.id == item.locationId }
+        ItemDetailDialog(
+            item = item,
+            onDismiss = { selectedItemForDetail = null },
+            subtitle = location?.let { "Uloženo: ${it.name}" }
+        ) {
+            TooltipButton(
+                text = "Vzít do batohu hrdiny",
+                containerColor = GothicBloodRed,
+                contentColor = GothicTextSilver,
+                testTag = "retrieve_to_backpack_button"
+            ) {
+                if (backpackItems.size >= activeCap) {
+                    showBackpackFullWarn = true
+                } else {
+                    // locationId = null puts the item back into the active inventory.
+                    viewModel.moveItemToLocation(item, null)
+                    selectedItemForDetail = null
                 }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (item.pixelArtData != null) {
-                        val bitmap = remember(item.pixelArtData) { Pixelizer.fromBase64(item.pixelArtData) }
-                        bitmap?.let {
-                            Box(
-                                modifier = Modifier
-                                    .size(72.dp)
-                                    .align(Alignment.CenterHorizontally)
-                                    .background(GothicLightSurface)
-                                    .border(2.dp, getRarityColor(item.rarity), GothicCardShape)
-                                    .padding(4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Image(
-                                    bitmap = it.asImageBitmap(),
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Fit,
-                                    filterQuality = androidx.compose.ui.graphics.FilterQuality.None
-                                )
-                            }
-                        }
-                    }
+            }
 
-                    if (item.description.isNotEmpty()) {
-                        Text(
-                            text = item.description,
-                            color = GothicTextMuted,
-                            style = Typography.bodyLarge,
-                            fontStyle = FontStyle.Italic
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Hmotnost: ${item.weight} kg", color = GothicTextSilver, style = Typography.bodyMedium)
-                    
-                    if (item.stats.isNotEmpty()) {
-                        Text("Vlastnosti:", color = GothicTextGold, style = Typography.labelLarge)
-                        item.stats.split(",").forEach { stat ->
-                            Text("• $stat", color = GothicTextSilver, style = Typography.bodyMedium)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-                    
-                    // RETRIEVE TO BACKPACK ACTION (Vzít do batohu) with capacity protection logic
-                    Button(
-                        onClick = {
-                            if (backpackItems.size >= activeCap) {
-                                showBackpackFullWarn = true
-                            } else {
-                                viewModel.moveItemToLocation(item, null) // sets locationId to null, sending to active backpack
-                                selectedItemForDetail = null
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = GothicBloodRed),
-                        modifier = Modifier.fillMaxWidth().testTag("retrieve_to_backpack_button")
-                    ) {
-                        Icon(imageVector = Icons.Default.Star, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Vzít do batohu hrdiny", color = GothicTextSilver)
-                    }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = { selectedItemForDetail = null }) {
+                    Text("Zavřít", color = GothicTextMuted)
                 }
-            },
-            confirmButton = {
-                // Destroy item Permanently
                 IconButton(
                     onClick = {
                         viewModel.deleteItem(item)
@@ -457,12 +400,48 @@ fun LocationsScreen(
                     },
                     modifier = Modifier.testTag("delete_stash_item_button")
                 ) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Zničit věc", tint = GothicBloodRed)
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Zničit věc",
+                        tint = GothicBloodRed
+                    )
+                }
+            }
+        }
+    }
+
+    // --- DELETE LOCATION CONFIRMATION ---
+    locationToDelete?.let { location ->
+        val storedCount = allItems.count { it.locationId == location.id }
+        AlertDialog(
+            onDismissRequest = { locationToDelete = null },
+            title = { Text("Zbořit ${location.name}?", style = Typography.titleLarge, color = GothicBloodRed) },
+            text = {
+                Text(
+                    text = if (storedCount == 0) {
+                        "Tato lokace je prázdná. Opravdu ji chceš smazat?"
+                    } else {
+                        "Spolu s lokací nenávratně zmizí i $storedCount uložených věcí. " +
+                            "Pokud si je chceš nechat, nejdřív si je vezmi do batohu."
+                    },
+                    color = GothicTextSilver
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteLocation(location)
+                        locationToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = GothicBloodRed),
+                    modifier = Modifier.testTag("confirm_delete_location_button")
+                ) {
+                    Text("Smazat navždy", color = GothicTextSilver)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { selectedItemForDetail = null }) {
-                    Text("Zavřít", color = GothicTextWithMuted)
+                TextButton(onClick = { locationToDelete = null }) {
+                    Text("Zrušit", color = GothicTextMuted)
                 }
             },
             containerColor = GothicDarkSurface,

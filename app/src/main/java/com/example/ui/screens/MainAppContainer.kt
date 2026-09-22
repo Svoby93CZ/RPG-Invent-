@@ -10,12 +10,10 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.example.ui.components.GothicCardShape
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.RPGViewModel
 
@@ -24,7 +22,9 @@ fun MainAppContainer(
     viewModel: RPGViewModel,
     modifier: Modifier = Modifier
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    // rememberSaveable so a rotation or a trip through the background does not
+    // dump the user back on the first tab.
+    var selectedTab by rememberSaveable { mutableStateOf(0) }
 
     Scaffold(
         modifier = modifier

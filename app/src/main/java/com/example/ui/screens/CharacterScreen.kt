@@ -1,33 +1,23 @@
 package com.example.ui.screens
 
-import android.graphics.Bitmap
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -38,10 +28,10 @@ import com.example.data.*
 import com.example.ui.components.*
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.RPGViewModel
-import com.example.utils.Pixelizer
-
 import androidx.compose.material.icons.filled.List
+import com.example.utils.StatUtils
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CharacterScreen(
     viewModel: RPGViewModel,
@@ -216,21 +206,10 @@ fun CharacterScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             
+                            // Bonuses of the same name add up instead of the last item
+                            // equipped silently overwriting every earlier one.
                             val combinedStats = remember(equippedItems) {
-                                val map = mutableMapOf<String, String>()
-                                equippedItems.forEach { item ->
-                                    if (item.stats.isNotEmpty()) {
-                                        item.stats.split(",").forEach {
-                                            val parts = it.split(":")
-                                            if (parts.size == 2) {
-                                                val k = parts[0].trim()
-                                                val v = parts[1].trim()
-                                                map[k] = v
-                                            }
-                                        }
-                                    }
-                                }
-                                map
+                                StatUtils.merge(equippedItems.map { it.stats })
                             }
 
                             if (combinedStats.isEmpty()) {
@@ -385,7 +364,7 @@ fun CharacterScreen(
                         style = Typography.bodyMedium
                     )
                     Text(
-                        text = "Základní kapacita (0) + kapsy",
+                        text = "Základ ($BASE_INVENTORY_CAPACITY) + kapsy",
                         color = GothicTextMuted,
                         style = Typography.bodyMedium,
                         fontStyle = FontStyle.Italic
@@ -608,174 +587,16 @@ fun CharacterScreen(
         )
     }
 
-    // --- ITEM DETAIL DIALOG (BACKPACK ITEM CLICKED) ---
+    // --- ITEM DETAIL TOOLTIP (BACKPACK ITEM CLICKED) ---
     selectedItemForDetail?.let { item ->
-        AlertDialog(
-            onDismissRequest = { selectedItemForDetail = null },
-            title = {
-                Column {
-                    Text(
-                        text = item.name,
-                        style = Typography.titleLarge,
-                        color = getRarityColor(item.rarity)
-                    )
-                    Text(
-                        text = getRarityCzechName(item.rarity),
-                        color = getRarityColor(item.rarity).copy(alpha = 0.8f),
-                        style = Typography.bodyMedium
-                    )
-                }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Item Icon Pixelart Preview if available
-                    item.pixelArtData?.let { base64 ->
-                        val bitmap = remember(base64) { Pixelizer.fromBase64(base64) }
-                        bitmap?.let {
-                            Box(
-                                modifier = Modifier
-                                    .size(72.dp)
-                                    .align(Alignment.CenterHorizontally)
-                                    .background(GothicLightSurface)
-                                    .border(2.dp, getRarityColor(item.rarity), GothicCardShape)
-                                    .padding(4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Image(
-                                    bitmap = it.asImageBitmap(),
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Fit,
-                                    filterQuality = androidx.compose.ui.graphics.FilterQuality.None // maintains pixelation blocks
-                                )
-                            }
-                        }
-                    }
-
-                    if (item.description.isNotEmpty()) {
-                        Text(
-                            text = item.description,
-                            color = GothicTextMuted,
-                            style = Typography.bodyLarge,
-                            fontStyle = FontStyle.Italic
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Základní typ: ${getCzechSlotName(item.slotType)}", color = GothicTextSilver, style = Typography.bodyMedium)
-                    Text("Hmotnost: ${item.weight} kg", color = GothicTextSilver, style = Typography.bodyMedium)
-                    
-                    if (item.stats.isNotEmpty()) {
-                        Text("Vlastnosti:", color = GothicTextGold, style = Typography.labelLarge)
-                        item.stats.split(",").forEach { stat ->
-                            Text("• $stat", color = GothicTextSilver, style = Typography.bodyMedium)
-                        }
-                    }
-
-                    if (item.hasPockets) {
-                        Text("Zvětšuje inventář o: +${item.pocketSize} kapes", color = GothicTextGold, style = Typography.bodyMedium)
-                    }
-
-                    if (item.isConsumable) {
-                        Text("Použití: ${item.charges} / ${item.maxCharges} zbývá", color = GothicTextGold, style = Typography.bodyMedium)
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Akce předmětu:", color = GothicTextGold, style = Typography.labelLarge)
-
-                    // 1. Equip Button (if equipable)
-                    if (item.slotType != "OBECNY") {
-                        Button(
-                            onClick = {
-                                // For items with multiple slots (like HRUDNIK: 3 layers, PRST: 4 rings etc), auto-find first free or index 0
-                                val targetSlotType = item.slotType
-                                val maxSlots = SlotType.valueOf(targetSlotType).maxSlots
-                                
-                                // find empty index or use 0
-                                var indexToEquip = 0
-                                for (i in 0 until maxSlots) {
-                                    val isOccupied = equippedItems.any { it.slotType == targetSlotType && it.equippedSlotIndex == i }
-                                    if (!isOccupied) {
-                                        indexToEquip = i
-                                        break
-                                    }
-                                }
-                                viewModel.equipItem(item, targetSlotType, indexToEquip)
-                                selectedItemForDetail = null
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = GothicBloodRed),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Nasadit do slotu", color = GothicTextSilver)
-                        }
-                    }
-
-                    // 2. Consume Button (if consumable)
-                    if (item.isConsumable) {
-                        Button(
-                            onClick = {
-                                viewModel.consumeItem(item)
-                                selectedItemForDetail = null
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = GothicGold, contentColor = GothicDarkBackground),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Použít předmět", fontWeight = FontWeight.Bold)
-                        }
-                    }
-
-                    // 3. Store in Location Button
-                    if (locations.isNotEmpty()) {
-                        var showStoreDropdown by remember { mutableStateOf(false) }
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            Button(
-                                onClick = { showStoreDropdown = true },
-                                colors = ButtonDefaults.buttonColors(containerColor = GothicLightSurface, contentColor = GothicTextSilver),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Uložit do truhly / místa...", color = GothicTextGold)
-                            }
-                            
-                            DropdownMenu(
-                                expanded = showStoreDropdown,
-                                onDismissRequest = { showStoreDropdown = false },
-                                modifier = Modifier.background(GothicLightSurface)
-                            ) {
-                                locations.forEach { location ->
-                                    DropdownMenuItem(
-                                        text = { Text(location.name, color = GothicTextSilver) },
-                                        onClick = {
-                                            viewModel.moveItemToLocation(item, location.id)
-                                            showStoreDropdown = false
-                                            selectedItemForDetail = null
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                // Delete / Destroy Button
-                IconButton(
-                    onClick = {
-                        viewModel.deleteItem(item)
-                        selectedItemForDetail = null
-                    },
-                    modifier = Modifier.testTag("delete_item_button")
-                ) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Zničit předmět", tint = GothicBloodRed)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { selectedItemForDetail = null }) {
-                    Text("Zavřít", color = GothicTextWithMuted)
-                }
-            },
-            containerColor = GothicDarkSurface,
-            shape = GothicCardShape
-        )
+        ItemDetailDialog(item = item, onDismiss = { selectedItemForDetail = null }) {
+            BackpackItemActions(
+                item = item,
+                locations = locations,
+                viewModel = viewModel,
+                onDismiss = { selectedItemForDetail = null }
+            )
+        }
     }
 
     // --- SETS MANAGEMENT DIALOG ---
@@ -897,39 +718,23 @@ fun EquipmentSlotCard(
                 .clip(RoundedCornerShape(4.dp))
                 .background(if (equippedItem != null) GothicLightSurface else GothicDarkSurface)
                 .border(if (equippedItem != null) 2.dp else 1.dp, rarityColor, RoundedCornerShape(4.dp))
-                .clickable { onClick() },
+                .clickable { onClick() }
+                .testTag("slot_${slotType}_$index"),
             contentAlignment = Alignment.Center
         ) {
             if (equippedItem == null) {
-                // Empty slot indicator
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = label,
-                    tint = GothicBorderGray.copy(alpha = 0.5f),
-                    modifier = Modifier.size(24.dp)
+                // An empty slot shows the silhouette of what belongs in it, so the six chest
+                // and leg layers can be told apart at a glance.
+                PixelGlyph(
+                    rows = SlotGlyphs.forSlot(slotType),
+                    color = GothicBorderGray,
+                    modifier = Modifier.fillMaxSize().padding(8.dp)
                 )
             } else {
-                // Equipped Item Icon
-                if (equippedItem.pixelArtData != null) {
-                    val bitmap = remember(equippedItem.pixelArtData) { Pixelizer.fromBase64(equippedItem.pixelArtData) }
-                    bitmap?.let {
-                        Image(
-                            bitmap = it.asImageBitmap(),
-                            contentDescription = equippedItem.name,
-                            modifier = Modifier.fillMaxSize().padding(2.dp),
-                            contentScale = ContentScale.Fit,
-                            filterQuality = androidx.compose.ui.graphics.FilterQuality.None
-                        )
-                    }
-                } else {
-                    // Fallback
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = equippedItem.name,
-                        tint = rarityColor,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+                ItemIcon(
+                    item = equippedItem,
+                    modifier = Modifier.fillMaxSize().padding(4.dp)
+                )
             }
         }
         Text(
@@ -961,25 +766,7 @@ fun ItemGridBox(
             .testTag("item_${item.id}"),
         contentAlignment = Alignment.Center
     ) {
-        if (item.pixelArtData != null) {
-            val bitmap = remember(item.pixelArtData) { Pixelizer.fromBase64(item.pixelArtData) }
-            bitmap?.let {
-                Image(
-                    bitmap = it.asImageBitmap(),
-                    contentDescription = item.name,
-                    modifier = Modifier.fillMaxSize().padding(4.dp),
-                    contentScale = ContentScale.Fit,
-                    filterQuality = androidx.compose.ui.graphics.FilterQuality.None
-                )
-            }
-        } else {
-            Icon(
-                imageVector = Icons.Default.Star,
-                contentDescription = item.name,
-                tint = rarityColor,
-                modifier = Modifier.size(28.dp)
-            )
-        }
+        ItemIcon(item = item, modifier = Modifier.fillMaxSize().padding(5.dp))
 
         // Pocket indicator small symbol
         if (item.hasPockets) {
@@ -1018,46 +805,3 @@ fun ItemGridBox(
         }
     }
 }
-
-// Simple FlowRow helper if experimental Compose FlowRow isn't configured
-@Composable
-fun FlowRow(
-    modifier: Modifier = Modifier,
-    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
-    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
-    content: @Composable () -> Unit
-) {
-    // Custom layout mapping layout rows
-    androidx.compose.ui.layout.Layout(
-        content = content,
-        modifier = modifier
-    ) { measurables, constraints ->
-        val placeables = measurables.map { it.measure(constraints) }
-        var yPosition = 0
-        var xPosition = 0
-        var rowHeight = 0
-        val layoutWidth = constraints.maxWidth
-        
-        // Compute heights
-        val coordinates = mutableListOf<Triple<androidx.compose.ui.layout.Placeable, Int, Int>>()
-        
-        placeables.forEach { placeable ->
-            if (xPosition + placeable.width > layoutWidth) {
-                xPosition = 0
-                yPosition += rowHeight + 8.dp.roundToPx()
-                rowHeight = 0
-            }
-            coordinates.add(Triple(placeable, xPosition, yPosition))
-            xPosition += placeable.width + 8.dp.roundToPx()
-            rowHeight = Math.max(rowHeight, placeable.height)
-        }
-        
-        val totalHeight = yPosition + rowHeight
-        layout(layoutWidth, totalHeight) {
-            coordinates.forEach { (placeable, x, y) ->
-                placeable.placeRelative(x, y)
-            }
-        }
-    }
-}
-val GothicTextWithMuted = Color(0xFFA1A1AA)

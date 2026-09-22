@@ -3,6 +3,7 @@ package com.example.ui.theme
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
@@ -49,4 +50,44 @@ val Typography = Typography(
         lineHeight = 16.sp,
         letterSpacing = 1.sp
     )
+)
+
+// Monospace carries the pixel/terminal feel of the lists, but an item card reads better in a
+// serif — it is what gives the Baldur's Gate tooltip its "page from a tome" character.
+val TooltipTitleStyle = TextStyle(
+    fontFamily = FontFamily.Serif,
+    fontWeight = FontWeight.Bold,
+    fontSize = 21.sp,
+    lineHeight = 26.sp,
+    letterSpacing = 0.5.sp
+)
+
+val TooltipHeadlineStyle = TextStyle(
+    fontFamily = FontFamily.Serif,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 17.sp,
+    lineHeight = 22.sp
+)
+
+val TooltipRarityStyle = TextStyle(
+    fontFamily = FontFamily.Serif,
+    fontWeight = FontWeight.Normal,
+    fontSize = 12.sp,
+    lineHeight = 16.sp,
+    letterSpacing = 1.sp
+)
+
+val TooltipBodyStyle = TextStyle(
+    fontFamily = FontFamily.Serif,
+    fontWeight = FontWeight.Normal,
+    fontSize = 13.sp,
+    lineHeight = 19.sp
+)
+
+val LoreStyle = TextStyle(
+    fontFamily = FontFamily.Serif,
+    fontStyle = FontStyle.Italic,
+    fontWeight = FontWeight.Normal,
+    fontSize = 12.sp,
+    lineHeight = 18.sp
 )

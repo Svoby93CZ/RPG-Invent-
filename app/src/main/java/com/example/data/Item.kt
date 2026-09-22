@@ -3,6 +3,12 @@ package com.example.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+/**
+ * What the hero can carry with nothing equipped — hands and trouser pockets. Without it a
+ * fresh character has a capacity of zero and cannot take a single thing out of a chest.
+ */
+const val BASE_INVENTORY_CAPACITY = 6
+
 enum class SlotType(val displayName: String, val maxSlots: Int, val description: String) {
     HLAVA("Hlava", 1, "Slot pro čepici, helmu či korunu."),
     KRK("Krk", 1, "Slot pro náhrdelník nebo řetízek."),

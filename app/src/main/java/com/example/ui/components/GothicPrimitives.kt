@@ -77,7 +77,6 @@ fun GothicPanel(
                     .fillMaxWidth()
                     .height(2.dp)
                     .background(borderColor)
-                    .padding(bottom = 8.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
         }
