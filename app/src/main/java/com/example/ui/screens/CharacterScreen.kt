@@ -46,10 +46,12 @@ fun CharacterScreen(
     
     val activeCap by viewModel.activeInventoryCapacity.collectAsState()
     val activeWeight by viewModel.activeInventoryWeight.collectAsState()
+    val abilityScores by viewModel.abilityScores.collectAsState()
 
     var showEditNameDialog by remember { mutableStateOf(false) }
     var showSetsDialog by remember { mutableStateOf(false) }
     var showAddSkillDialog by remember { mutableStateOf(false) }
+    var showAbilitiesDialog by remember { mutableStateOf(false) }
     var selectedItemForDetail by remember { mutableStateOf<Item?>(null) }
     var selectSlotToEquip by remember { mutableStateOf<Pair<String, Int>?>(null) } // slotType, slotIndex
     var classType by remember { mutableStateOf("KNIGHT") } // KNIGHT or ALCHEMIST
@@ -137,7 +139,16 @@ fun CharacterScreen(
             }
         }
 
-        // 2. Equipment Slots Layout
+        // 2. Attributes
+        item {
+            AbilityPanel(
+                scores = abilityScores,
+                onEditClick = { showAbilitiesDialog = true },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        // 3. Equipment Slots Layout
         item {
             GothicPanel(
                 borderColor = GothicGold,
@@ -447,6 +458,15 @@ fun CharacterScreen(
             },
             containerColor = GothicDarkSurface,
             shape = GothicCardShape
+        )
+    }
+
+    // --- ATTRIBUTES DIALOG ---
+    if (showAbilitiesDialog) {
+        AbilityEditDialog(
+            scores = abilityScores,
+            onDismiss = { showAbilitiesDialog = false },
+            onChange = { ability, score -> viewModel.updateAbilityScore(ability, score) }
         )
     }
 

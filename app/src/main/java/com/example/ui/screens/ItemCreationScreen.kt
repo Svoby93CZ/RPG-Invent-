@@ -252,15 +252,18 @@ fun ItemCreationScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    val quickStatsList = listOf(
-                        "Odolnost vůči zimě:Dobrá",
-                        "Odolnost vůči zimě:Skvělá",
-                        "Síla:+5",
-                        "Ochrana:+3",
-                        "Kapacita:+10",
-                        "Štěstí:+15",
-                        "Energie:+10"
-                    )
+                    // The attribute chips are generated from Ability, so a chip always writes
+                    // a name the character sheet actually recognises as a bonus.
+                    val quickStatsList = remember {
+                        Ability.entries.map { "${it.statName}:+1" } + listOf(
+                            "Odolnost vůči zimě:Dobrá",
+                            "Odolnost vůči zimě:Skvělá",
+                            "Ochrana:+3",
+                            "Kapacita:+10",
+                            "Štěstí:+15",
+                            "Energie:+10"
+                        )
+                    }
                     quickStatsList.forEach { qStat ->
                         Box(
                             modifier = Modifier

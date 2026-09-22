@@ -27,6 +27,7 @@ class RPGViewModel(application: Application) : AndroidViewModel(application) {
     // Computed Streams
     val activeInventoryCapacity: StateFlow<Int>
     val activeInventoryWeight: StateFlow<Double>
+    val abilityScores: StateFlow<List<AbilityScore>>
 
     init {
         val database = AppDatabase.getDatabase(application, viewModelScope)
@@ -64,6 +65,19 @@ class RPGViewModel(application: Application) : AndroidViewModel(application) {
                 BASE_INVENTORY_CAPACITY
             )
 
+        // The hero's attributes: their own scores plus whatever the worn gear grants. The bonus
+        // is derived, never stored, so taking a ring off cannot leave a stale bonus behind.
+        abilityScores = combine(repository.character, repository.equippedItems) { hero, equipped ->
+            AbilityCalculator.scores(
+                baseScores = (hero ?: GameCharacter()).baseScores(),
+                rawStats = equipped.map { it.stats }
+            )
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            AbilityCalculator.scores(emptyMap(), emptyList())
+        )
+
         // Calculate total weight of things currently in backpack
         activeInventoryWeight = repository.backpackItems
             .map { items ->
@@ -75,7 +89,15 @@ class RPGViewModel(application: Application) : AndroidViewModel(application) {
     // --- CHARACTER OPERATIONS ---
     fun updateCharacterName(newName: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.insertCharacter(GameCharacter(id = 1, name = newName))
+            // Copy the stored row instead of building a fresh one, or a rename would reset
+            // every attribute back to its default.
+            repository.insertCharacter(repository.currentCharacter().copy(name = newName))
+        }
+    }
+
+    fun updateAbilityScore(ability: Ability, score: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertCharacter(repository.currentCharacter().withScore(ability, score))
         }
     }
 

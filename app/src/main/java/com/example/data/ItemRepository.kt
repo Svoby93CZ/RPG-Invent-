@@ -19,6 +19,13 @@ class ItemRepository(private val appDao: AppDao) {
         appDao.insertCharacter(character)
     }
 
+    /**
+     * Reads the hero straight from the database rather than from a cached flow, so an edit never
+     * depends on some screen currently being subscribed — and never writes back a stale row.
+     */
+    suspend fun currentCharacter(): GameCharacter =
+        appDao.getCharacter().firstOrNull() ?: GameCharacter()
+
     suspend fun insertLocation(location: Location): Long = appDao.insertLocation(location)
     suspend fun updateLocation(location: Location) = appDao.updateLocation(location)
     suspend fun deleteLocationWithItems(location: Location) = appDao.deleteLocationWithItems(location)

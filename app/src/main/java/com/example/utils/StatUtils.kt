@@ -20,6 +20,10 @@ object StatUtils {
     fun sanitize(raw: String): String =
         DECIMAL_COMMA.replace(raw) { "${it.groupValues[1]}.${it.groupValues[2]}" }
 
+    /** The number a value opens with ("+5 body" -> 5.0), or null when it is purely textual. */
+    fun numericValue(value: String): Double? =
+        LEADING_NUMBER.find(value.trim())?.value?.toDoubleOrNull()
+
     /** Splits a raw stat string into name/value pairs and drops malformed fragments. */
     fun parse(raw: String): List<Stat> = raw.split(',').mapNotNull { fragment ->
         val separator = fragment.indexOf(':')

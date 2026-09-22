@@ -58,6 +58,13 @@ android {
   testOptions { unitTests { isIncludeAndroidResources = true } }
 }
 
+ksp {
+  // Room writes the schema of every database version here. Those JSON files are what makes a
+  // real migration possible instead of wiping the user's data on every schema change; commit
+  // them alongside the migration that produced them.
+  arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
 // to match the convention used in Web projects.
 secrets {

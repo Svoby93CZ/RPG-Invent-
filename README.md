@@ -22,11 +22,29 @@ vzácnosti, blok statů, vlastnosti a kurzívou psaný popis nad lištou se slot
 
 Všechno běží offline v lokální Room databázi; aplikace nemá oprávnění k internetu.
 
-##技 Technologie
+## Technologie
 
 Kotlin, Jetpack Compose (Material 3), Room, ViewModel + StateFlow. Pixelart postavy
 i siluety prázdných slotů se kreslí přímo na Canvas z textových matic, takže v projektu
 nejsou žádné bitmapové assety.
+
+### Písma
+
+V `app/src/main/res/font/` jsou přibalené [Cinzel](https://fonts.google.com/specimen/Cinzel)
+(nadpisy) a [EB Garamond](https://fonts.google.com/specimen/EB+Garamond) (karty předmětů).
+Oba jsou pod SIL Open Font License 1.1, texty licencí jsou v `app/src/main/assets/licenses/`.
+Jde o statické řezy vytažené z variabilních originálů a ořezané na latinku + Latin Extended-A
+(celá česká diakritika), dohromady ~240 kB. Seznamy, počítadla a tlačítka zůstaly monospace,
+aby si aplikace udržela pixelový charakter.
+
+### Databáze a migrace
+
+Room, verze schématu 4. Schéma se exportuje do `app/schemas/` (vznikne při prvním buildu)
+a **každá změna entit musí mít migraci** — vzorem je `MIGRATION_3_4` v `AppDatabase.kt`.
+Destruktivní fallback, který dřív při každé změně schématu smazal všechna data, je teď
+omezený jen na verze 1 a 2 z doby, kdy se schéma neexportovalo. Když od verze 3 zvýšíš
+`version` a zapomeneš migraci, aplikace spadne při startu — místo aby ti tiše vymazala
+inventář.
 
 ## Sestavení a spuštění
 
