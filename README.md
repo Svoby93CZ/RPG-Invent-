@@ -62,6 +62,22 @@ Projekt používá Gradle wrapper (`gradlew`), takže není potřeba mít Gradle
 Wrapper je připnutý na Gradle 9.7.1 — pokud by si ho AGP nevzalo, změň verzi
 v `gradle/wrapper/gradle-wrapper.properties`.
 
+### Sestavení bez počítače (jen z telefonu)
+
+APK staví GitHub Actions, takže na otestování změny stačí telefon — žádné SDK, žádný notebook.
+Workflow je v `.github/workflows/build-apk.yml` a spouští se při každém pushi; ručně ho pustíš
+v záložce **Actions → Build APK → Run workflow**.
+
+Hotové APK se objeví na dvou místech:
+
+* **Releases → Debug APK** — soubor `rpg-invent-debug.apk`. Odkaz se nemění, v telefonu ho
+  stačí ťuknout a nainstalovat. Tohle je cesta pro telefon.
+* **Actions → daný běh → Artifacts** — APK pojmenované podle větve a commitu, ale zabalené
+  v ZIPu. Praktičtější na počítači.
+
+Při první instalaci si telefon řekne o povolení instalace z neznámých zdrojů pro prohlížeč,
+kterým APK stahuješ.
+
 ### Nasazení na telefon
 
 Telefon potřebuje Android 7.0 nebo novější (`minSdk 24`).
