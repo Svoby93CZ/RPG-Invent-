@@ -62,12 +62,29 @@ Projekt používá Gradle wrapper (`gradlew`), takže není potřeba mít Gradle
 Wrapper je připnutý na Gradle 9.7.1 — pokud by si ho AGP nevzalo, změň verzi
 v `gradle/wrapper/gradle-wrapper.properties`.
 
+### Nasazení na telefon
+
+Telefon potřebuje Android 7.0 nebo novější (`minSdk 24`).
+
+1. V telefonu zapni vývojářská nastavení: **Nastavení → O telefonu** a sedmkrát klepni na
+   **Číslo sestavení**. Pak v **Možnosti pro vývojáře** zapni **Ladění přes USB**.
+2. Připoj telefon kabelem, u režimu USB zvol **Přenos souborů** a na výzvu potvrď
+   otisk počítače.
+3. `adb devices` musí telefon vypsat jako `device`. Pokud píše `unauthorized`, nepotvrdil
+   jsi dialog v telefonu; pokud ho nevypíše vůbec, chybí udev pravidla — na Ubuntu/Pop!_OS
+   je doplní `sudo apt install android-sdk-platform-tools-common`.
+4. `./gradlew installDebug`
+
+Bez kabelu (Android 11+): v možnostech pro vývojáře zapni **Bezdrátové ladění**, pak
+`adb pair <ip>:<port>` s kódem z telefonu a `adb connect <ip>:<port>`.
+
+Případně APK z `app/build/outputs/apk/debug/app-debug.apk` prostě přenes do telefonu
+a nainstaluj ručně (telefon si řekne o povolení instalace z neznámých zdrojů).
+
 ### Podepisování
 
-Debug sestavení používá `debug.keystore` v kořeni projektu (soubor je v `.gitignore`).
-Pokud ho nemáš, buď si ho vygeneruj, nebo z `app/build.gradle.kts` smaž řádek
-`signingConfig = signingConfigs.getByName("debugConfig")` a nech Android Studio použít
-výchozí debug klíč.
+Debug sestavení podepisuje Android Gradle Plugin sdíleným klíčem `~/.android/debug.keystore`,
+který si sám vytvoří — není potřeba nic nastavovat.
 
 Release sestavení čte keystore z proměnných prostředí `KEYSTORE_PATH`, `STORE_PASSWORD`
 a `KEY_PASSWORD`.

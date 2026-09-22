@@ -28,12 +28,6 @@ android {
       keyAlias = "upload"
       keyPassword = System.getenv("KEY_PASSWORD")
     }
-    create("debugConfig") {
-      storeFile = file("${rootDir}/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
-    }
   }
 
   buildTypes {
@@ -43,9 +37,10 @@ android {
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       signingConfig = signingConfigs.getByName("release")
     }
-    debug {
-      signingConfig = signingConfigs.getByName("debugConfig")
-    }
+    // No signingConfig for debug on purpose: the Android Gradle Plugin signs debug builds with
+    // the shared ~/.android/debug.keystore, which it creates on first use. Pointing at a
+    // project-local debug.keystore meant a fresh clone could not be built at all, because that
+    // file is deliberately not in version control.
   }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11
