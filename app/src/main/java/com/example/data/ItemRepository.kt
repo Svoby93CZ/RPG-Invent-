@@ -1,5 +1,6 @@
 package com.example.data
 
+import com.example.utils.EquipmentSetCodec
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 
@@ -17,6 +18,13 @@ class ItemRepository(private val appDao: AppDao) {
     suspend fun insertCharacter(character: GameCharacter) {
         appDao.insertCharacter(character)
     }
+
+    /**
+     * Reads the hero straight from the database rather than from a cached flow, so an edit never
+     * depends on some screen currently being subscribed — and never writes back a stale row.
+     */
+    suspend fun currentCharacter(): GameCharacter =
+        appDao.getCharacter().firstOrNull() ?: GameCharacter()
 
     suspend fun insertLocation(location: Location): Long = appDao.insertLocation(location)
     suspend fun updateLocation(location: Location) = appDao.updateLocation(location)
@@ -80,20 +88,35 @@ class ItemRepository(private val appDao: AppDao) {
     
     suspend fun deleteEquipmentSet(equipmentSet: EquipmentSet) = appDao.deleteEquipmentSet(equipmentSet)
 
+    /**
+     * Dresses the character in a saved set. Every piece goes back to the slot index it was
+     * saved in, so a three-layer chest outfit does not collapse onto a single slot; sets saved
+     * before indices were recorded fall back to the first free index of the item's own type.
+     */
     suspend fun loadEquipmentSet(equipmentSet: EquipmentSet) {
-        val itemIds = equipmentSet.itemIds.split(",").mapNotNull { it.toLongOrNull() }
-        
-        // Unequip current items
+        val assignments = EquipmentSetCodec.decode(equipmentSet.itemIds)
+
+        // Take everything off first, so the set never leaves pieces of the previous outfit on.
         val currentEquipped = appDao.getEquippedItems().firstOrNull() ?: emptyList()
         currentEquipped.forEach {
             appDao.updateItem(it.copy(equippedSlotIndex = null, locationId = null))
         }
 
-        // Equip saved items to index 0 of their respective slotType
-        itemIds.forEach { itemId ->
-            appDao.getItemById(itemId)?.let { item ->
-                appDao.updateItem(item.copy(locationId = null, equippedSlotIndex = 0))
-            }
+        val taken = mutableSetOf<Pair<String, Int>>()
+        assignments.forEach { assignment ->
+            val item = appDao.getItemById(assignment.itemId) ?: return@forEach
+            val slotType = assignment.slotType.ifEmpty { item.slotType }
+            val maxSlots = SlotType.entries.find { it.name == slotType }?.maxSlots ?: 0
+            if (maxSlots == 0) return@forEach
+
+            val savedIndex = assignment.slotIndex
+                .takeIf { it in 0 until maxSlots && (slotType to it) !in taken }
+            val index = savedIndex
+                ?: (0 until maxSlots).firstOrNull { (slotType to it) !in taken }
+                ?: return@forEach
+
+            taken += slotType to index
+            appDao.updateItem(item.copy(locationId = null, equippedSlotIndex = index))
         }
     }
 }

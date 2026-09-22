@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.*
+import com.example.utils.EquipmentSetCodec
+import com.example.utils.StatUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -25,6 +27,7 @@ class RPGViewModel(application: Application) : AndroidViewModel(application) {
     // Computed Streams
     val activeInventoryCapacity: StateFlow<Int>
     val activeInventoryWeight: StateFlow<Double>
+    val abilityScores: StateFlow<List<AbilityScore>>
 
     init {
         val database = AppDatabase.getDatabase(application, viewModelScope)
@@ -51,12 +54,29 @@ class RPGViewModel(application: Application) : AndroidViewModel(application) {
         skills = repository.skills
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-        // Calculate active carrying capacity of character based on pocket size of equipped items
+        // What the hero can carry: their own hands and pockets, plus every bag and coat worn.
         activeInventoryCapacity = repository.equippedItems
             .map { equipped ->
-                equipped.filter { it.hasPockets }.sumOf { it.pocketSize }
+                BASE_INVENTORY_CAPACITY + equipped.filter { it.hasPockets }.sumOf { it.pocketSize }
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                BASE_INVENTORY_CAPACITY
+            )
+
+        // The hero's attributes: their own scores plus whatever the worn gear grants. The bonus
+        // is derived, never stored, so taking a ring off cannot leave a stale bonus behind.
+        abilityScores = combine(repository.character, repository.equippedItems) { hero, equipped ->
+            AbilityCalculator.scores(
+                baseScores = (hero ?: GameCharacter()).baseScores(),
+                rawStats = equipped.map { it.stats }
+            )
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            AbilityCalculator.scores(emptyMap(), emptyList())
+        )
 
         // Calculate total weight of things currently in backpack
         activeInventoryWeight = repository.backpackItems
@@ -69,7 +89,15 @@ class RPGViewModel(application: Application) : AndroidViewModel(application) {
     // --- CHARACTER OPERATIONS ---
     fun updateCharacterName(newName: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.insertCharacter(GameCharacter(id = 1, name = newName))
+            // Copy the stored row instead of building a fresh one, or a rename would reset
+            // every attribute back to its default.
+            repository.insertCharacter(repository.currentCharacter().copy(name = newName))
+        }
+    }
+
+    fun updateAbilityScore(ability: Ability, score: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertCharacter(repository.currentCharacter().withScore(ability, score))
         }
     }
 
@@ -112,7 +140,8 @@ class RPGViewModel(application: Application) : AndroidViewModel(application) {
                 slotType = slotType,
                 rarity = rarity,
                 description = description,
-                stats = stats,
+                // A decimal comma typed into a value would otherwise split the stat in half.
+                stats = StatUtils.sanitize(stats),
                 weight = weight,
                 isConsumable = isConsumable,
                 charges = charges,
@@ -137,6 +166,20 @@ class RPGViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.equipItem(item, slotType, index)
         }
+    }
+
+    /**
+     * Where a piece lands when the user just taps "equip": the first free index of its slot
+     * type, or the last one when every layer is already taken — that is the one being replaced.
+     */
+    fun firstFreeSlotIndex(slotType: String): Int {
+        val maxSlots = SlotType.entries.find { it.name == slotType }?.maxSlots ?: 0
+        if (maxSlots == 0) return 0
+        val occupied = equippedItems.value
+            .filter { it.slotType == slotType }
+            .mapNotNull { it.equippedSlotIndex }
+            .toSet()
+        return (0 until maxSlots).firstOrNull { it !in occupied } ?: (maxSlots - 1)
     }
 
     fun unequipItem(item: Item) {
@@ -172,10 +215,15 @@ class RPGViewModel(application: Application) : AndroidViewModel(application) {
 
     fun saveCurrentEquipmentAsSet(name: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            val equipped = equippedItems.value
-            val itemIds = equipped.joinToString(",") { it.id.toString() }
-            val set = EquipmentSet(name = name, itemIds = itemIds)
-            repository.insertEquipmentSet(set)
+            // Record which slot each piece sits in, otherwise layered outfits cannot be restored.
+            val assignments = equippedItems.value.mapNotNull { item ->
+                item.equippedSlotIndex?.let {
+                    EquipmentSetCodec.SlotAssignment(item.id, item.slotType, it)
+                }
+            }
+            repository.insertEquipmentSet(
+                EquipmentSet(name = name, itemIds = EquipmentSetCodec.encode(assignments))
+            )
         }
     }
 

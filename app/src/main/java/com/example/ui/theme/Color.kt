@@ -19,3 +19,14 @@ val ColorUncommon = Color(0xFF4ADE80)   // Uncommon (Green)
 val ColorRare = Color(0xFF60A5FA)       // Rare (Blue)
 val ColorUnique = Color(0xFFC084FC)     // Unique (Purple)
 val ColorLegendary = Color(0xFFF97316)  // Legendary (Orange)
+
+// --- Item tooltip palette (Baldur's Gate III inspired layering) ---
+// The tooltip is built from four stacked bands that get darker towards the bottom,
+// so the item name reads first and the weight/slot footer reads last.
+val TooltipHeader = Color(0xFF2B2B31)   // band behind the item name and its icon
+val TooltipBody = Color(0xFF1F1F24)     // stat block
+val TooltipSection = Color(0xFF26262C)  // properties / description band
+val TooltipFooter = Color(0xFF131316)   // weight and slot footer strip
+val TooltipDivider = Color(0xFF44444E)  // hairline between bands
+val LoreParchment = Color(0xFF938B68)   // italic flavour text, faded parchment ink
+val StatValue = Color(0xFFD8C79A)       // numbers on the right-hand side of a stat row

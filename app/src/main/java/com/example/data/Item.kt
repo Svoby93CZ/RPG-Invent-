@@ -1,7 +1,14 @@
 package com.example.data
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
+
+/**
+ * What the hero can carry with nothing equipped — hands and trouser pockets. Without it a
+ * fresh character has a capacity of zero and cannot take a single thing out of a chest.
+ */
+const val BASE_INVENTORY_CAPACITY = 6
 
 enum class SlotType(val displayName: String, val maxSlots: Int, val description: String) {
     HLAVA("Hlava", 1, "Slot pro čepici, helmu či korunu."),
@@ -23,7 +30,12 @@ enum class ItemRarity(val displayName: String, val color: Long) {
     LEGENDARY("Legendární (oranžová)", 0xFFFF9800)
 }
 
-@Entity(tableName = "items")
+// Every screen asks "what is in this location" or "what is on the hero" (locationId IS NULL
+// plus an equipped slot), so one composite index covers all of those lookups.
+@Entity(
+    tableName = "items",
+    indices = [Index(value = ["locationId", "equippedSlotIndex"])]
+)
 data class Item(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,

@@ -4,12 +4,19 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-@Database(entities = [GameCharacter::class, Location::class, Item::class, EquipmentSet::class, Skill::class], version = 3, exportSchema = false)
+@Database(
+    entities = [GameCharacter::class, Location::class, Item::class, EquipmentSet::class, Skill::class],
+    version = 4,
+    // The schema of every version is written to app/schemas (see room.schemaLocation in
+    // app/build.gradle.kts). Those files are what makes writing the next migration possible.
+    exportSchema = true
+)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun appDao(): AppDao
@@ -17,6 +24,28 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        /**
+         * Adds the hero's six attributes and the index the item lookups rely on.
+         *
+         * Both are additive, so nothing the user has entered is touched. The `DEFAULT 10` has to
+         * match the `@ColumnInfo(defaultValue = "10")` on [GameCharacter], or Room rejects the
+         * migrated database as not matching the schema it expects.
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf(
+                    "strength", "dexterity", "constitution",
+                    "intelligence", "willpower", "charisma"
+                ).forEach { column ->
+                    db.execSQL("ALTER TABLE `characters` ADD COLUMN `$column` INTEGER NOT NULL DEFAULT 10")
+                }
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_items_locationId_equippedSlotIndex` " +
+                        "ON `items` (`locationId`, `equippedSlotIndex`)"
+                )
+            }
+        }
 
         fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -26,7 +55,15 @@ abstract class AppDatabase : RoomDatabase() {
                     "rpg_character_organizer_db"
                 )
                 .addCallback(AppDatabaseCallback(scope))
-                .fallbackToDestructiveMigration()
+                .addMigrations(MIGRATION_3_4)
+                // Destructive fallback rebuilds the database from scratch and takes every item
+                // the user ever entered with it. It is now limited to versions 1 and 2, which
+                // predate the exported schema and cannot be described well enough to migrate.
+                // From version 3 on, a version bump without a Migration fails loudly at startup
+                // instead of quietly wiping the user's inventory — which is the point.
+                // dropAllTables = true: when the fallback does fire, recreate everything
+                // rather than leaving half of an old schema behind.
+                .fallbackToDestructiveMigrationFrom(true, 1, 2)
                 .build()
                 INSTANCE = instance
                 instance
