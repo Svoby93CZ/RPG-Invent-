@@ -37,6 +37,22 @@ Jde o statické řezy vytažené z variabilních originálů a ořezané na lati
 (celá česká diakritika), dohromady ~240 kB. Seznamy, počítadla a tlačítka zůstaly monospace,
 aby si aplikace udržela pixelový charakter.
 
+### Náhled pixelartu
+
+Postavy i siluety prázdných slotů jsou textové matice přímo v Kotlin zdrojácích — jeden znak
+na pixel. `tools/render_sprites.py` je přečte a vykreslí do PNG, takže úprava grafiky je
+smyčka „změň matici, koukni se" místo celého Android buildu:
+
+```bash
+pip install pillow
+python3 tools/render_sprites.py          # výsledek v build/sprite-preview/
+```
+
+Pozor na jednu věc: `PixelArtCharacter` počítá šířku a výšku buňky nezávisle, takže se
+mřížka 40×40 na telefonu vměstná zhruba do 98×240 dp a pixely **nejsou čtvercové** —
+postava je svisle natažená asi 2,4×. Současné sprity jsou kreslené s tím počítaje;
+kdyby se to mělo srovnat na čtvercové pixely, je potřeba je překreslit do vyššího formátu.
+
 ### Databáze a migrace
 
 Room, verze schématu 4. Schéma se exportuje do `app/schemas/` (vznikne při prvním buildu)
